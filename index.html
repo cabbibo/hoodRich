@@ -1,0 +1,629 @@
+<!--
+
+Dear Source Viewer:
+
+This code is unusable. At one point in time it created something specific,
+Now it is a puddle of mush that is impossible to dissect. 
+Please don't waste your time on it!
+
+but if you have questions: isaaclandoncohen@gmail.com
+
+-->
+
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<title>Sporel</title>
+		<style>
+			html {
+				height: 100%;
+			}
+			body {
+				width: 100%;
+				height: 100%;
+
+				margin: 0;
+				padding: 0;
+
+				color: #fff;
+
+				font-size: 20px;
+				//font-family: Serif;
+				//font-style: italic;
+
+				background-color: #000;
+
+                overflow: hidden;
+                font-family:"GeoSans";
+
+              
+              }
+
+          a{
+            color:#fff;
+
+          }
+          #title{
+
+            color: #fff;
+            position:absolute;
+            left:0px;
+            top:0px;
+            z-index:999;
+
+
+          }
+
+          @font-face {
+            font-family: "GeoSans";
+            src: url("GeosansLight.ttf");
+          }
+
+		</style>
+	</head>
+	<body>
+
+      <div id="title"> 
+        Hood Rich or Die Trying by 
+        <a href="https://soundcloud.com/pinknoiseordinance" target="_blank"> Pink Noise Ordinance </a>
+        <br/>
+        Inspired by <a href="http://www.mrdoob.com/projects/christmasexperiments/2013/" target="_blank"> Sporel </a>
+        by <a href="http://www.mrdoob.com" target="_blank"> Mr.Doob </a>
+        <br/>
+        Made Using: 
+        <a href="http://threejs.org/" target="_blank"> three.js </a> and 
+        <a href="http://www.clicktorelease.com/tmp/wagner/" target="_blank"> Wagner.js </a> 
+      </div>
+     
+
+
+      <script src="three.min.js"></script>
+      <script src="TrackballControls.js"></script>
+		<script src="FBOUtils.js"></script>
+		<script src="OBJLoader.js"></script>
+      <script src="Wagner/Wagner.js"></script>
+
+
+
+		<script src="Audio.js"></script>
+
+		<script id="vs-simulation" type="x-shader/x-vertex">
+				
+			varying vec2 vUv;
+
+			void main() {
+
+				vUv = vec2(uv.x, 1.0 - uv.y);
+				gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+
+			}
+
+		</script>
+		<script id="fs-simulation" type="x-shader/x-fragment">
+							
+            uniform vec2 mouse;
+
+
+            uniform sampler2D tPositions;
+			uniform sampler2D tOrigins;
+
+            uniform sampler2D tAudio;
+            uniform float timer;
+            
+            varying vec2 vUv;
+
+            void main( void )
+            {
+                
+            vec3 vO = texture2D( tOrigins, vUv ).rgb;
+            vec3 v = texture2D( tPositions, vUv).rgb;
+            vec3 a = texture2D( tAudio, vUv).rgb;
+
+            vec3 dif = vO - v;
+            v = vO + dif / 1000.0;
+
+
+            vec3 alter = v;
+            
+            float pi2 = 3.1415926535 * 2.0;
+            float cx = -abs( cos( timer * .1 ));
+            float cy = -abs( sin( timer * .2 ));
+            float cz = -abs( cos( timer * .05 ));
+          
+            float z = 0.0;
+            float m = 0.0;
+
+            for(int i = 0; i < 12; i ++){
+
+
+              v.x = abs(v.x);
+              v.y = abs(v.y);  
+              v.z = abs(v.z);   
+              
+              m = v.x * v.x + v.y * v.y + v.z * v.z;
+
+              v.x = v.x / m + cx;
+              v.y = v.y / m + cy;
+              v.z = v.z / m + cz;
+
+            }
+
+
+            vec3 vN = normalize( v );
+            vec3 n  = normalize( alter );
+
+            float vx = vO.x + .4 * sin( a.x ) * (vN.x * n.x * (1. + a.x*.5 )); 
+           // float vy = vO.y + .4 * sin( timer * 5.) * (vN.y * n.y * (1. + a.y*.5 )); 
+            //float vz = vO.z + 1. * sin( timer * 1.) * (vN.z * n.z * (1. + a.z*.5 ));
+            vec3 vONorm = normalize( vO );
+
+            gl_FragColor = vec4 ( vO + .1 * sin( a.x + timer )* (vN * n * (1. + a*.5 )) , 1.0);
+
+          }
+
+
+
+
+		</script>
+
+		<!-- zz85 - end simulations -->
+
+		<script id="vs-particles" type="x-shader/x-vertex">
+
+          uniform sampler2D map;
+           uniform sampler2D tAudio;
+
+
+			uniform float width;
+            uniform float height;
+
+            uniform float sizeAtten;
+
+			varying vec2 vUv;
+			varying vec3 vPosition;
+			varying float opacity;
+
+			void main() {
+
+				vec2 uv = position.xy + vec2( 0.5 / width, 0.5 / height );
+
+				vec4 data = texture2D( map, uv );
+
+                vec4 a = texture2D( tAudio , vec2( uv.x , 0.0 ) );
+				vPosition = data.xyz;
+				opacity = data.w;
+
+
+                 //gl_PointSize = float( a.x * 5.0 ) ; // data.w * 10.0 + 1.0;
+                vec4 mvPos =  modelViewMatrix * vec4( vPosition, 1.0 );
+
+				gl_Position = projectionMatrix * mvPos;
+                
+			}
+
+		</script>
+
+		<script id="fs-particles" type="x-shader/x-fragment">
+
+          uniform vec3 pointColor;
+          
+          uniform float rays;
+          uniform float colorChoice;
+
+
+            uniform sampler2D tAudio;
+            uniform sampler2D texture;
+			varying vec3 vPosition;
+			varying float opacity;
+
+			void main() {
+
+              vec4 c = texture2D( tAudio , vec2(abs( normalize( vPosition).x) , 0.0 ) );
+
+              
+              gl_FragColor = texture2D( texture , vec2( gl_PointCoord.x, 1.0 - gl_PointCoord.y ) );
+              if (c.w< .5) discard;
+
+             
+             // if ( c.w >= c.y * (.5 +abs(sin( c.x ))) ) discard;
+              
+		  	  gl_FragColor = vec4( normalize(c.xyz ) , c.w );
+		  	  gl_FragColor = vec4( c.x, c.y , c.z, c.w * .1 );
+		  	  //gl_FragColor = vec4( normalize( pointColor * c.xyz ) , .05 );
+
+			}
+
+          </script>
+
+
+        <script id="vs-cube" type="x-shader/x-fragment">
+
+
+          varying vec2 vUv;
+          varying vec3 vPos;
+          void main(){
+
+            vUv = vec2(uv.x, 1.0 - uv.y);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+
+            vPos = gl_Position.xyz;
+
+          }
+
+
+        </script>
+
+        <script id="fs-cube" type="x-shader/x-fragment">
+
+          uniform sampler2D  tAudio;
+          uniform sampler2D  texture;
+          varying vec2 vUv;
+          varying vec3 vPos;
+          void main(){
+
+            float a =abs( abs(vUv.x) +  abs(vUv.y) ) / 2.0;
+            vec2 s = vec2( a , 0.0 );
+            vec4 c = texture2D( texture , vUv );
+            //vec4 c = texture2D( tAudio , s);
+            float d = 100. / vPos.z;
+            gl_FragColor = vec4( d* d* c.xyz , 1.0 );
+
+
+
+          }
+          
+
+
+        </script>
+
+
+		<script>
+
+			var audio;
+
+			var scene, camera, renderer;
+			var particleMaterial;
+
+			var fboParticles, rtTexturePos, rtTexturePos2, simulationShader;
+
+            var mesh;
+
+
+			function init( geometry ) {
+
+                audioTime = 0;
+				renderer = new THREE.WebGLRenderer();
+				renderer.domElement.style.display = 'none';
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				document.body.appendChild( renderer.domElement );
+
+				camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 1, 5000 );
+                camera.position.z = 150;
+
+                timer = 0;
+
+                var dpr = window.devicePixelRatio || 1;
+                              
+                composer = new WAGNER.Composer( renderer );
+                composer.setSize( dpr * window.innerWidth, dpr * window.innerHeight );
+
+                zoomBlurPass = new WAGNER.ZoomBlurPass();
+              multiPassBloomPass = new WAGNER.MultiPassBloomPass();
+
+              renderer.autoClearColor = true;
+
+
+                controls = new THREE.TrackballControls( camera );
+
+				scene = new THREE.Scene();
+
+				//
+
+				var width = 1024, height = 1024;
+
+				var data = new Float32Array( width * height * 4 );
+				var positionsTexture = new THREE.DataTexture( data, width, height, THREE.RGBAFormat, THREE.FloatType );
+				positionsTexture.minFilter = THREE.NearestFilter;
+				positionsTexture.magFilter = THREE.NearestFilter;
+				positionsTexture.generateMipmaps = false;
+				positionsTexture.needsUpdate = true;
+
+                //var geometry = new THREE.IcosahedronGeometry( 150 , 5);
+                var size = 150;
+			//	var geometry = new THREE.CubeGeometry( size , size , size , 100 , 100 ,100 );
+
+				var material = new THREE.MeshBasicMaterial( {
+                  color: 0x000000,
+                  side: THREE.DoubleSide
+                  } );
+
+                var uniforms = {
+
+                  texture:{ type:"t" , value: null },
+                  tAudio:{ type:"t" , value: null },
+
+                }
+
+                var cabbiboLogo = new THREE.ImageUtils.loadTexture( 'sprite.png' );
+
+                cubeMaterial = new THREE.ShaderMaterial({
+
+                  vertexShader: document.getElementById('vs-cube').textContent,
+                  fragmentShader: document.getElementById('fs-cube').textContent,
+                  uniforms: uniforms,
+                  side: THREE.DoubleSided
+
+                });
+
+                //var mat = new THREE
+
+                console.log( geometry );
+                mesh = new THREE.Mesh( geometry, material );
+                mesh.scale.multiplyScalar( 100 );
+				scene.add( mesh );
+
+
+				var data = new Float32Array( width * height * 3 );
+
+				//
+
+				/*
+				var points = THREE.GeometryUtils.randomPointsInGeometry( geometry, data.length / 3 );
+
+				for ( var i = 0, j = 0, l = data.length; i < l; i += 3, j += 1 ) {
+
+					data[ i ] = points[ j ].x;
+					data[ i + 1 ] = points[ j ].y;
+					data[ i + 2 ] = points[ j ].z;
+
+				}
+				*/
+
+                var point = new THREE.Vector3();
+
+                console.log( geometry );
+				var facesLength = geometry.faces.length;
+
+			
+				for ( var i = 0, l = data.length; i < l; i += 3 ) {
+
+					var face = geometry.faces[ Math.floor( Math.random() * facesLength ) ];
+
+					var vertex1 = geometry.vertices[ face.a ];
+					var vertex2 = geometry.vertices[ Math.random() > 0.5 ? face.b : face.c ];
+
+					point.subVectors( vertex2, vertex1 );
+					point.multiplyScalar( Math.random() );
+					point.add( vertex1 );
+
+					data[ i ] = point.x;
+					data[ i + 1 ] = point.y;
+					data[ i + 2 ] = point.z;
+
+				}
+
+				var originsTexture = new THREE.DataTexture( data, width, height, THREE.RGBFormat, THREE.FloatType );
+				originsTexture.minFilter = THREE.NearestFilter;
+				originsTexture.magFilter = THREE.NearestFilter;
+				originsTexture.generateMipmaps = false;
+				originsTexture.needsUpdate = true;
+
+				// zz85 - fbo init
+
+				rtTexturePos = new THREE.WebGLRenderTarget( width, height, {
+					minFilter: THREE.NearestFilter,
+					magFilter: THREE.NearestFilter,
+					format: THREE.RGBAFormat,
+					type:THREE.FloatType,
+					stencilBuffer: false
+				});
+
+				rtTexturePos2 = rtTexturePos.clone();
+
+				simulationShader = new THREE.ShaderMaterial({
+
+					uniforms: {
+						tPositions: { type: "t", value: positionsTexture },
+                        tOrigins: { type: "t", value: originsTexture },
+                        tAudio: { type: "t", value:  null },
+                        mouse:    { type: "v2" , value: new THREE.Vector2( -0.5 , -0.1 ) },
+						opacity: { type: "f", value: 0 },
+						timer: { type: "f", value: 0 }
+					},
+
+					vertexShader: document.getElementById('vs-simulation').textContent,
+					fragmentShader:  document.getElementById('fs-simulation').textContent
+
+				});
+
+				fboParticles = new THREE.FBOUtils( width, renderer, simulationShader );
+				fboParticles.renderToTexture( rtTexturePos, rtTexturePos2 );
+
+				fboParticles.in = rtTexturePos;
+				fboParticles.out = rtTexturePos2;
+
+				var  geometry = new THREE.Geometry();
+
+				for ( var i = 0, l = width * height; i < l; i ++ ) {
+
+					var vertex = new THREE.Vector3();
+					vertex.x = ( i % width ) / width ;
+					vertex.y = Math.floor( i / width ) / height;
+					geometry.vertices.push( vertex );
+
+				}
+
+                time = 0;
+				particleMaterial = new THREE.ShaderMaterial( {
+
+					uniforms: {
+
+						"sizeAtten": { type: "f", value: 1.0 },
+						"rays": { type: "f", value: 1.0  },
+						"colorChoice": { type: "f", value: 1.0 },
+						"map": { type: "t", value: rtTexturePos },
+						"width": { type: "f", value: width },
+						"height": { type: "f", value: height },
+                        "tAudio": {type:"t",value:null},
+                        "texture": {type:"t",value:cabbiboLogo},
+						"pointColor": { type: "v3", value: new THREE.Vector3( 0.1, 0.25, 0.5 ) }
+
+					},
+					vertexShader: document.getElementById( 'vs-particles' ).textContent,
+					fragmentShader: document.getElementById( 'fs-particles' ).textContent,
+					blending: THREE.AdditiveBlending,
+					depthWrite: false,
+					// depthTest: false,
+					transparent: true,
+
+				} );
+
+                mesh = new THREE.ParticleSystem( geometry, particleMaterial );
+                mesh.scale.multiplyScalar( 100 );
+				scene.add( mesh );
+
+				/*
+				var mesh = new THREE.Mesh(
+					new THREE.CubeGeometry( 500, 500, 500 ),
+					new THREE.MeshBasicMaterial( { color: 0xffffff, wireframe: true, opacity: 0.1, transparent: true } )
+				);
+				scene.add( mesh );
+				*/
+
+				window.addEventListener( 'resize', onWindowResize, false );
+
+				//
+
+				audio = new Audio( 'hoodRich.mp3' );
+				audio.mark = 75;
+				audio.onLoad( function () {
+
+					renderer.domElement.style.display = '';
+
+					animate();
+
+				} );
+				// document.body.appendChild( audio.getCanvas() );
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+				render();
+
+			}
+
+			function render() {
+
+              controls.update();
+				audio.update();
+
+
+                oAudioTime = audioTime;
+				audioTime = audio.getCurrentTime();
+
+                audio.update();
+
+                timer += audio.analyser.average * audio.analyser.average  / 10000000;
+
+                var k = timer / 360;
+
+                simulationShader.uniforms.mouse.value.x = Math.cos( timer );
+                simulationShader.uniforms.mouse.value.y = Math.sin( timer );
+
+
+				var easing = 1 - Math.pow( 2, - 10 * k );
+                var distance = 4000 * easing - 4350;
+
+               // mesh.rotation.y += .01
+
+				//camera.position.x = - Math.cos( timer * 0.1 ) * distance;
+				//camera.position.z = Math.sin( timer * 0.1 ) * distance;
+				camera.lookAt( scene.position );
+  
+
+                cubeMaterial.uniforms.tAudio.value = audio.texture;
+                simulationShader.uniforms.tAudio.value = audio.texture;
+                particleMaterial.uniforms.tAudio.value = audio.texture;
+				simulationShader.uniforms.timer.value = timer;
+	
+
+				// swap
+				var tmp = fboParticles.in;
+				fboParticles.in = fboParticles.out;
+				fboParticles.out = tmp;
+
+                cubeMaterial.uniforms.texture.value = fboParticles.in;
+
+				simulationShader.uniforms.tPositions.value = fboParticles.in;
+                
+                fboParticles.simulate( fboParticles.out );
+
+				particleMaterial.uniforms.map.value = fboParticles.out;
+
+                composer.reset();
+                //zoomBlurPass.strength = 100;
+                //zoomBlurPass.params.strength = .1;
+
+
+                if(( audioTime > 42 && audioTime < 108) || audioTime >150){
+                  renderGod();
+                }else{
+                  renderRegular();
+                }
+             
+				//renderer.render( scene, camera );
+
+			}
+            var Loader = new THREE.OBJLoader();
+
+            Loader.load( 'logo.obj' , function(object){
+
+              geometry =  object.children[0].geometry ;
+              console.log( geometry );
+
+              var mat = new THREE.MeshBasicMaterial();
+              var mesh = new THREE.Mesh( geometry , mat );
+              mesh.scale.multiplyScalar( .01 );
+
+              var geo = new THREE.Geometry();
+
+              THREE.GeometryUtils.merge(  geo , mesh );
+
+              init( geo  );
+
+            });
+
+
+          function renderRegular(){
+
+            composer.render( scene, camera );
+              composer.pass( multiPassBloomPass );
+                               composer.toScreen();
+
+          }
+          function renderGod(){
+
+            composer.render( scene, camera );
+              composer.pass( multiPassBloomPass );
+              composer.pass( zoomBlurPass );
+                     composer.toScreen();
+
+          }
+		</script>
+	</body>
+</html>
