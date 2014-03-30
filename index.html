@@ -58,6 +58,15 @@ but if you have questions: isaaclandoncohen@gmail.com
 
           }
 
+          #loading{
+
+            position:absolute;
+            top:50%;
+            left:50%;
+            margin-left:-25px;
+            margin-top:-25px;
+            z-index:999;
+          }
           @font-face {
             font-family: "GeoSans";
             src: url("GeosansLight.ttf");
@@ -80,6 +89,7 @@ but if you have questions: isaaclandoncohen@gmail.com
       </div>
      
 
+      <img id = "loading" src="loadGif.gif" />
 
       <script src="three.min.js"></script>
       <script src="TrackballControls.js"></script>
@@ -502,6 +512,8 @@ but if you have questions: isaaclandoncohen@gmail.com
 				audio.mark = 75;
 				audio.onLoad( function () {
 
+                    var l = document.getElementById('loading');
+                    l.style.display = 'none';
 					renderer.domElement.style.display = '';
 
 					animate();
