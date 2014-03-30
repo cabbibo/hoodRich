@@ -8,7 +8,7 @@ var Audio = function ( url ) {
 	analyser.connect( context.destination );
 
 	var gain = context.createGain();
-	gain.gain.value = 10;
+	gain.gain.value = 2;
 	gain.connect( analyser );
 
 	var onLoadCallback = function () {};
